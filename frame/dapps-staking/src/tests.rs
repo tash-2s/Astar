@@ -1,5 +1,5 @@
 use super::{pallet::pallet::Error, Event, *};
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok, traits::OnInitialize};
 use mock::{Balances, EraIndex, MockSmartContract, *};
 use sp_core::H160;
 use sp_runtime::traits::{AccountIdConversion, Zero};
@@ -254,6 +254,22 @@ fn unregister_with_incorrect_contract_is_not_ok() {
             DappsStaking::unregister(Origin::signed(developer_1), second_contract_id.clone()),
             Error::<TestRuntime>::NotOwnedContract
         );
+    })
+}
+
+#[test]
+fn on_initialize_when_dapp_staking_enabled_in_mid_of_an_era_is_ok() {
+    ExternalityBuilder::build().execute_with(|| {
+        // Set a block number in mid of an era
+        System::set_block_number(2);
+
+        // Verify that current era is 0 since dapps staking hasn't been initialized yet
+        assert_eq!(0u32, DappsStaking::current_era());
+
+        // Call on initialize in the mid of an era (according to block number calculation)
+        // but since no era was initialized before, it will trigger a new era init.
+        DappsStaking::on_initialize(System::block_number());
+        assert_eq!(1u32, DappsStaking::current_era());
     })
 }
 

@@ -276,10 +276,13 @@ pub mod pallet {
         fn on_initialize(now: BlockNumberFor<T>) -> Weight {
             let force_new_era = Self::force_era().eq(&Forcing::ForceNew);
             let blocks_pre_era = T::BlockPerEra::get();
+            let previous_era = Self::current_era();
 
             // Value is compared to 1 since genesis block is ignored
-            if now % blocks_pre_era == BlockNumberFor::<T>::from(1u32) || force_new_era {
-                let previous_era = Self::current_era();
+            if now % blocks_pre_era == BlockNumberFor::<T>::from(1u32)
+                || force_new_era
+                || previous_era.is_zero()
+            {
                 Self::reward_balance_snapshoot(previous_era);
                 let next_era = previous_era + 1;
                 CurrentEra::<T>::put(next_era);
